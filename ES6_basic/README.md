@@ -1,0 +1,1 @@
+In this project we will be learning how to use arrow fuctions and rest parameters in javascript!
