@@ -1,15 +1,11 @@
-export function taskFirst() {
-  const task = 'I prefer const when I can.';
-  return task;
-}
+export default function taskBlock(trueOrFalse) {
+  let task = false;
+  let task2 = true;
 
-export function getLast() {
-  return ' is okay';
-}
+  if (trueOrFalse) {
+    let task = true;
+    let task2 = false;
+  }
 
-export function taskNext() {
-  let combination = 'But sometimes let';
-  combination += getLast();
-
-  return combination;
+  return [task, task2];
 }
