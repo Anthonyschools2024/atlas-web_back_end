@@ -1,11 +1,11 @@
-// airport
+// 7-airport.js
 export default class Airport {
   constructor(name, code) {
     this._name = name;
     this._code = code;
   }
 
-  // Getter for name (optional, not explicitly asked for but good practice)
+  // Getter for name (optional)
   get name() {
     return this._name;
   }
@@ -15,7 +15,7 @@ export default class Airport {
     this._name = newName;
   }
 
-  // Getter for code (optional, but again, good practice)
+  // Getter for code
   get code() {
     return this._code;
   }
@@ -25,8 +25,8 @@ export default class Airport {
     this._code = newCode;
   }
 
-  // Override toString() method to return the airport code in brackets
-  toString() {
-    return `[${this._code}]`;
+  // Implement toStringTag to customize [object Object]
+  get [Symbol.toStringTag]() {
+    return this.code;
   }
 }
