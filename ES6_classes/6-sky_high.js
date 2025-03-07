@@ -1,4 +1,4 @@
-// 6-sky_high.js
+// sky_high
 import Building from './5-building';
 
 export default class SkyHighBuilding extends Building {
@@ -14,6 +14,6 @@ export default class SkyHighBuilding extends Building {
 
   // Override evacuationWarningMessage method
   evacuationWarningMessage() {
-    return `Evacuate slowly the ${this.floors} floors.`;
+    return `Evacuate slowly the ${this.floors} floors`;
   }
 }
