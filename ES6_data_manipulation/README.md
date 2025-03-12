@@ -1,0 +1,1 @@
+In this project we will be learning how to manipulate data in an array using javascript. Im curious on how this will turn the webpage more dynamic and interactive! We will also be using elements duch as map and weakmap to organize such data!
