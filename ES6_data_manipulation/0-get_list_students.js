@@ -1,3 +1,8 @@
+/**
+ * Returns a list of student objects, each containing id, firstName, and location.
+ *
+ * @returns {Array} An array of student objects.
+ */
 function getListStudents() {
   return [
     { id: 1, firstName: 'Guillaume', location: 'San Francisco' },
@@ -7,6 +12,5 @@ function getListStudents() {
 }
 
 export default getListStudents;
-export { getListStudents };
 
 
