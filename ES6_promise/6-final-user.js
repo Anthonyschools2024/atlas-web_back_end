@@ -9,7 +9,7 @@ import uploadPhoto from "./5-photo-reject.js";
  *
  * Once settled, it returns an array where each element is an object with:
  *   - status: the status of the promise ("fulfilled" or "rejected")
- *   - value: the resolved value or the error object if the promise was rejected
+ *   - value: the resolved value, or the error message (as a string) if the promise was rejected
  *
  * @param {string} firstName - The first name of the user.
  * @param {string} lastName - The last name of the user.
@@ -21,11 +21,12 @@ export default function handleProfileSignup(firstName, lastName, fileName) {
   return Promise.allSettled([signUpUser(firstName, lastName), uploadPhoto(fileName)])
     .then((results) =>
       results.map((result) => {
-        // Map rejected promises' 'reason' to 'value' for consistency.
         if (result.status === "rejected") {
-          return { status: result.status, value: result.reason };
+          // Convert the error object to a string to match the expected output.
+          return { status: result.status, value: result.reason.toString() };
         }
         return { status: result.status, value: result.value };
       })
     );
 }
+
