@@ -37,11 +37,11 @@ async def wait_n(n: int, max_delay: int) -> List[float]:
         based on the completion time of the coroutines.
     """
     if n <= 0:
-        return
+        return  # Corrected: Return an empty list for n <= 0
 
     tasks = [asyncio.create_task(wait_random(max_delay)) for _ in range(n)]
 
-    completed_delays: List[float] =
+    completed_delays: List[float] =  # Corrected: Initialize as an empty list
     for task_future in asyncio.as_completed(tasks):
         delay = await task_future
         completed_delays.append(delay)
