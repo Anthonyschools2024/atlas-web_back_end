@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Module demonstrating concurrent execution of asynchronous coroutines.
@@ -39,6 +38,7 @@ async def wait_n(n: int, max_delay: int) -> List[float]:
     task_list = [asyncio.create_task(wait_random(max_delay)) for _ in range(n)]
 
     # This list will store the delays as they are returned by completed tasks.
+    # Corrected: Properly initialize as an empty list with
     results_list =
 
     # asyncio.as_completed() provides an iterator that yields tasks as they finish.
