@@ -1,50 +1,52 @@
+
 #!/usr/bin/env python3
 """
-Module for executing multiple coroutines concurrently.
+Module demonstrating concurrent execution of asynchronous coroutines.
 
-This module provides an asynchronous routine `wait_n` that
-spawns multiple instances of the `wait_random` coroutine
-and collects their results in ascending order of completion time.
+This script defines `wait_n`, an asynchronous function that manages
+multiple calls to another coroutine, `wait_random`, and collects
+their results based on completion order.
 """
 
 import asyncio
 from typing import List
 
-# Import wait_random from the previous file (0-basic_async_syntax.py)
-# as demonstrated in the provided main files.
+# Import the base coroutine from the specified module
 wait_random = __import__('0-basic_async_syntax').wait_random
 
 
 async def wait_n(n: int, max_delay: int) -> List[float]:
     """
-    Asynchronously spawns wait_random n times with a specified max_delay.
+    Spawns `wait_random` multiple times and gathers the resulting delays.
 
-    This coroutine creates `n` tasks, each running `wait_random(max_delay)`.
-    It then waits for these tasks to complete and collects the delay
-    returned by each. The list of delays is returned in ascending order,
-    which is achieved by processing tasks as they complete, rather than
-    explicitly sorting the final list.
+    This coroutine will initiate `n` concurrent calls to `wait_random`,
+    each configured with the `max_delay`. It then collects the float
+    delay values returned by each call. The final list of delays
+    is presented in ascending order, naturally achieved by processing
+    coroutines as they complete.
 
-    Args:
-        n: The number of times to call/spawn wait_random.
-           Must be a non-negative integer.
-        max_delay: The maximum delay (in seconds) to be passed to each
-                   wait_random call. Must be a non-negative integer.
+    Parameters:
+        n (int): The quantity of `wait_random` coroutines to launch.
+        max_delay (int): The upper limit for the random delay in each
+                         `wait_random` call.
 
     Returns:
-        A list of float values. Each float is a delay returned by
-        a `wait_random` call. The list is sorted in ascending order
-        based on the completion time of the coroutines.
+        List[float]: A list containing the float delay values, sorted
+                     implicitly by the order of coroutine completion.
     """
-    if n <= 0:
-        return  # Returns an empty list for n <= 0
+    # Prepare a list of all tasks to be executed.
+    # Each task is an instance of wait_random(max_delay) scheduled for execution.
+    task_list = [asyncio.create_task(wait_random(max_delay)) for _ in range(n)]
 
-    tasks = [asyncio.create_task(wait_random(max_delay)) for _ in range(n)]
+    # This list will store the delays as they are returned by completed tasks.
+    results_list =
 
-    # Corrected: Properly initialize as an empty list with
-    completed_delays: List[float] =
-    for task_future in asyncio.as_completed(tasks):
-        delay = await task_future
-        completed_delays.append(delay)
+    # asyncio.as_completed() provides an iterator that yields tasks as they finish.
+    # This allows processing results in the order of completion.
+    for finished_task_future in asyncio.as_completed(task_list):
+        # Retrieve the actual delay value from the completed task.
+        current_delay = await finished_task_future
+        results_list.append(current_delay)
 
-    return completed_delays
+    # Return the list of delays, which will be in ascending order.
+    return results_list
