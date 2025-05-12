@@ -1,56 +1,53 @@
 #!/usr/bin/env python3
 """
-Module to measure the runtime of an asynchronous operation.
+Utility for timing the `wait_n` asynchronous operation.
 
-This module provides a function `measure_time` that calculates
-the average execution time per operation for the `wait_n` coroutine.
+This module provides a function to measure how long `wait_n` takes
+to run and then calculates an average time per concurrent operation
+it performs.
 """
 
-import asyncio
 import time
+import asyncio
+from typing import Callable  # Retained as per your provided script
 
-# Import wait_n from the previous file (1-concurrent_coroutines.py)
-# using the __import__ method as demonstrated in the project's main files.
-wait_n = __import__('1-concurrent_coroutines').wait_n
+# Importing the wait_n coroutine from the previous task's file.
+# This is the function whose performance we are measuring.
+wait_n = __import__("1-concurrent_coroutines").wait_n
 
 
 def measure_time(n: int, max_delay: int) -> float:
     """
-    Measures the total execution time for wait_n(n, max_delay)
-    and returns the average time per spawned operation (total_time / n).
+    Runs `wait_n` and computes the average execution time per internal task.
 
-    This function is synchronous but calls an asynchronous function
-    internally. It uses `time.perf_counter()` for accurate time
-    measurement and `asyncio.run()` to execute the `wait_n` coroutine.
+    This function will:
+    1. Record the time before starting `wait_n`.
+    2. Execute `wait_n(n, max_delay)` to completion.
+    3. Record the time after `wait_n` finishes.
+    4. Calculate the total duration and then the average per `n` operations.
 
     Args:
-        n: The number of times `wait_n` will spawn `wait_random`.
-           This is an integer.
-        max_delay: The maximum delay (in seconds) to be passed to each
-                   `wait_random` call within `wait_n`. This is an integer.
+        n (int): The number of concurrent `wait_random` calls that
+                 `wait_n` will initiate.
+        max_delay (int): The `max_delay` argument to be passed through
+                         to `wait_n`.
 
     Returns:
-        A float representing the average execution time per `wait_random`
-        call that was spawned by `wait_n`. This is calculated as
-        the total execution time of `wait_n` divided by `n`.
+        float: The average time (total_duration / n) taken for each of
+               the `n` concurrent operations within `wait_n`.
     """
-    # Record the start time before executing the asynchronous operation.
-    # time.perf_counter() provides a high-resolution clock for measuring
-    # short durations.
-    start_timestamp: float = time.perf_counter()
+    # Get the timestamp right before we start the async operations.
+    s_time = time.perf_counter()
 
-    # Execute the asynchronous wait_n function.
-    # asyncio.run() is the standard way to run an asyncio program's
-    # entry point coroutine from synchronous code.
+    # Run the main asynchronous function we're timing.
+    # asyncio.run() handles the event loop for this call.
     asyncio.run(wait_n(n, max_delay))
 
-    # Record the end time after the asynchronous operation has completed.
-    end_timestamp: float = time.perf_counter()
+    # Get the timestamp immediately after the async operations complete.
+    e_time = time.perf_counter()
 
-    # Calculate the total elapsed time for the execution of wait_n.
-    total_execution_time: float = end_timestamp - start_timestamp
+    # Calculate the total time elapsed.
+    duration = e_time - s_time
 
-    # Calculate and return the average time per operation.
-    average_time_per_operation: float = total_execution_time / n
-
-    return average_time_per_operation
+    # Compute the average time per operation and return it.
+    return duration / n
