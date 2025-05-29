@@ -1,12 +1,17 @@
-ls#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Module for filtering PII data from log messages.
-Contains a function to obfuscate specified fields in a log string
-and a Formatter class to integrate this into logging.
+Contains a function to obfuscate specified fields,
+a Formatter class to integrate this into logging,
+and a function to retrieve a configured logger for user data.
 """
 import re
-from typing import List
+from typing import List, Tuple
 import logging
+
+# Define PII_FIELDS constant at the root of the module.
+# These are fields considered PII and will be redacted by the logger.
+PII_FIELDS: Tuple[str, str, str, str, str] = ("name", "email", "phone", "ssn", "password")
 
 
 def filter_datum(fields: List[str], redaction: str, message: str, separator: str) -> str:
@@ -70,12 +75,42 @@ class RedactingFormatter(logging.Formatter):
         Returns:
             str: The formatted and redacted log string.
         """
-        # Redact the message part of the log record using filter_datum.
-        # record.msg contains the raw message string (assuming record.args is not used,
-        # as in the provided example).
         record.msg = filter_datum(fields=self.fields,
                                   redaction=self.REDACTION,
                                   message=record.msg,
                                   separator=self.SEPARATOR)
-        # Call the parent class's format method to apply FORMAT.
         return super().format(record)
+
+
+def get_logger() -> logging.Logger:
+    """
+    Creates and returns a configured logger for user data.
+
+    The logger is named "user_data", logs messages up to the INFO level,
+    and does not propagate messages to parent loggers. It is equipped
+    with a StreamHandler that uses the RedactingFormatter, parameterized
+    by the PII_FIELDS constant, to redact sensitive information.
+
+    Returns:
+        logging.Logger: A configured logger instance for user data.
+    """
+    logger = logging.getLogger("user_data")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False  # Do not propagate messages to other loggers
+
+    # Create a StreamHandler to output logs to the console (or other stream)
+    stream_handler = logging.StreamHandler()
+
+    # Create an instance of RedactingFormatter, parameterized with PII_FIELDS.
+    # RedactingFormatter's __init__ expects a List[str] for fields.
+    formatter = RedactingFormatter(fields=list(PII_FIELDS))
+
+    # Set the formatter for the StreamHandler
+    stream_handler.setFormatter(formatter)
+
+    # Add the handler to the logger, ensuring it's not added multiple times
+    # if get_logger is called repeatedly for the same logger instance.
+    if not logger.handlers:
+        logger.addHandler(stream_handler)
+
+    return logger
