@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 Module for filtering PII data from log messages.
-Contains a function to obfuscate specified fields in a log string.
+Contains a function to obfuscate specified fields in a log string
+and a Formatter class to integrate this into logging.
 """
 import re
 from typing import List
+import logging
 
 
 def filter_datum(fields: List[str], redaction: str, message: str, separator: str) -> str:
@@ -30,15 +32,50 @@ def filter_datum(fields: List[str], redaction: str, message: str, separator: str
         str: The log message with specified fields obfuscated.
              Example: "name=user;password=secret;" -> "name=user;password=***;"
     """
-    # Construct a regex pattern that matches any of the specified fields
-    # followed by an equals sign and its value.
-    # The pattern (field1|field2|...)=[^separator]* does the following:
-    #   - (field1|field2|...): Captures the field name (group 1). This allows
-    #     us to refer to it in the replacement string using \1.
-    #   - =: Matches the literal equals sign.
-    #   - [^separator]*: Matches any sequence of characters that are not the
-    #     separator, effectively capturing the field's value.
-    # The replacement string fr"\1={redaction}" uses the captured field name (\1),
-    # adds an equals sign, and then appends the redaction string.
     pattern = f"({'|'.join(fields)})=[^{separator}]*"
     return re.sub(pattern, fr"\1={redaction}", message)
+
+
+class RedactingFormatter(logging.Formatter):
+    """ Redacting Formatter class that filters specified PII fields
+        from log messages before standard formatting.
+    """
+
+    REDACTION = "***"
+    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
+    SEPARATOR = ";"
+
+    def __init__(self, fields: List[str]):
+        """
+        Initializes the RedactingFormatter.
+
+        Args:
+            fields (List[str]): A list of strings representing the names
+                                of fields to redact in log messages.
+        """
+        super(RedactingFormatter, self).__init__(self.FORMAT)
+        self.fields = fields
+
+    def format(self, record: logging.LogRecord) -> str:
+        """
+        Formats the log record, redacting specified PII fields in the message
+        before applying the overall log format.
+
+        The method modifies `record.msg` by applying `filter_datum` and then
+        calls the parent class's `format` method to produce the final string.
+
+        Args:
+            record (logging.LogRecord): The log record to format.
+
+        Returns:
+            str: The formatted and redacted log string.
+        """
+        # Redact the message part of the log record using filter_datum.
+        # record.msg contains the raw message string (assuming record.args is not used,
+        # as in the provided example).
+        record.msg = filter_datum(fields=self.fields,
+                                  redaction=self.REDACTION,
+                                  message=record.msg,
+                                  separator=self.SEPARATOR)
+        # Call the parent class's format method to apply FORMAT.
+        return super().format(record)
