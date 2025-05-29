@@ -82,19 +82,20 @@ class Server:
         """
         # Assertions for page and page_size are handled by get_page
         data_page = self.get_page(page, page_size)
-        
+
         total_items = len(self.dataset())
         # page_size is asserted > 0 in get_page, so no division by zero
         total_pages = math.ceil(total_items / page_size)
 
         prev_page = page - 1 if page > 1 else None
         next_page = page + 1 if page < total_pages else None
-        
+
         # If current page requested is beyond total_pages, data_page will be empty
         # and next_page should be None.
-        if page >= total_pages and data_page ==: # Handles cases like page 3000 for 195 total pages
-             next_page = None
-
+        # Also, if data_page is empty because page is valid but page_size is too large
+        # for the remaining items on the last page, next_page should still be None.
+        if not data_page or page >= total_pages:
+            next_page = None
 
         hyper_data = {
             "page_size": len(data_page),
