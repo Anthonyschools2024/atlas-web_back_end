@@ -1,18 +1,14 @@
+
 #!/usr/bin/env python3
 """
 Unit tests for the client.py module, specifically for GithubOrgClient.
 """
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, PropertyMock # Added PropertyMock
 from parameterized import parameterized
 
 # Assuming client.py is in the same directory or an accessible Python path
 # and defines GithubOrgClient.
-# Example:
-# from client import GithubOrgClient
-# For this to run, a client.py file with GithubOrgClient would be needed.
-# We'll proceed as if it exists and can be imported.
-# If client.py defines `from utils import get_json`, then patching `client.get_json` is correct.
 from client import GithubOrgClient
 
 
@@ -24,43 +20,57 @@ class TestGithubOrgClient(unittest.TestCase):
     @parameterized.expand([
         ("google", {"name": "Google", "type": "Organization"}),
         ("abc", {"name": "Alphabet Inc.", "type": "Organization"}),
-        # The payloads are examples of what get_json might return for these orgs.
     ])
-    @patch('client.get_json')  # Patch 'get_json' as it's used within client.py
+    @patch('client.get_json')
     def test_org(
         self,
-        mock_get_json: Mock,        # Argument injected by @patch (comes first)
-        org_name: str,              # First argument from @parameterized.expand
-        expected_payload: dict      # Second argument from @parameterized.expand
+        mock_get_json: Mock,
+        org_name: str,
+        expected_payload: dict
     ) -> None:
         """
         Tests that GithubOrgClient.org returns the correct value and that
         the underlying get_json function is called once with the expected URL.
         """
-        # Configure the mock_get_json to return the specific payload for this org
         mock_get_json.return_value = expected_payload
-
-        # Instantiate the client with the organization name
         client_instance = GithubOrgClient(org_name)
-
-        # Call the .org() method (assuming it's a method)
-        org_data = client_instance.org()
-
-        # Construct the expected URL that get_json should be called with
-        # This assumes GithubOrgClient.ORG_URL is defined as "https://api.github.com/orgs/{org}"
+        org_data = client_instance.org() # Assuming org() is a method call
         expected_url = f"https://api.github.com/orgs/{org_name}"
-
-        # Assert that get_json was called exactly once with the expected URL
         mock_get_json.assert_called_once_with(expected_url)
-
-        # Assert that the .org() method returned the expected payload
         self.assertEqual(org_data, expected_payload)
+
+    def test_public_repos_url(self) -> None:
+        """
+        Tests the _public_repos_url property of GithubOrgClient.
+        It mocks the 'org' property/method to return a known payload and verifies
+        that _public_repos_url correctly extracts the 'repos_url' from it.
+        """
+        # Define a known payload that client_instance.org (mocked as a property) will return
+        known_payload = {
+            "login": "testorg",
+            "repos_url": "https://api.github.com/orgs/testorg/repos"
+        }
+
+        # Instantiate the client. The org_name for init doesn't impact this specific
+        # test since 'org' is fully mocked.
+        client_instance = GithubOrgClient("testorg")
+
+        # Use patch as a context manager to mock 'GithubOrgClient.org'.
+        # 'new_callable=PropertyMock' ensures 'org' is treated as a property for mocking.
+        with patch('client.GithubOrgClient.org', new_callable=PropertyMock) as mock_org_property:
+            # Configure the mocked 'org' property to return our known_payload when accessed
+            mock_org_property.return_value = known_payload
+
+            # Access the _public_repos_url property.
+            # This should internally access client_instance.org (which is now the mocked property).
+            actual_repos_url = client_instance._public_repos_url
+
+            # Assert that the result is the expected 'repos_url' from the payload
+            self.assertEqual(actual_repos_url, known_payload["repos_url"])
+
+            # Assert that the 'org' property was accessed once to retrieve the payload
+            mock_org_property.assert_called_once()
 
 
 if __name__ == '__main__':
-    # This allows running the tests directly from this file:
-    # python -m unittest test_client.py
-    # or simply:
-    # python test_client.py
-    # if test_client.py is made executable and the shebang is correct.
     unittest.main()
