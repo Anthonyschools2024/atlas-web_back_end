@@ -1,20 +1,25 @@
+
 #!/usr/bin/env python3
 """
-Unit tests for the client.py module, specifically for GithubOrgClient.
+Unit tests for the client.py module, specifically for GithubOrgClient,
+and integration tests for GithubOrgClient.
 """
 import unittest
 from unittest.mock import patch, Mock, PropertyMock
-from parameterized import parameterized
-from typing import List, Dict, Any # Ensure Dict and Any are imported
+from parameterized import parameterized, parameterized_class # Added parameterized_class
+from typing import List, Dict, Any
 
 # Assuming client.py is in the same directory or an accessible Python path
-# and defines GithubOrgClient.
 from client import GithubOrgClient
+
+# Assuming fixtures.py is in the same directory or an accessible Python path
+# and contains: org_payload, repos_payload, expected_repos, apache2_repos
+from fixtures import org_payload, repos_payload, expected_repos, apache2_repos
 
 
 class TestGithubOrgClient(unittest.TestCase):
     """
-    Test suite for the GithubOrgClient class from client.py.
+    Test suite for the GithubOrgClient class from client.py (Unit Tests).
     """
 
     @parameterized.expand([
@@ -92,9 +97,87 @@ class TestGithubOrgClient(unittest.TestCase):
         Verifies that it correctly identifies if a repository dictionary
         contains a specific license key.
         """
-        # Assuming has_license is a static method on GithubOrgClient
         result = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(result, expected)
+
+
+@parameterized_class([
+    {
+        "org_payload": org_payload,
+        "repos_payload": repos_payload,
+        "expected_repos": expected_repos,
+        "apache2_repos": apache2_repos,
+    }
+])
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """
+    Integration tests for GithubOrgClient, mocking only external HTTP calls (requests.get).
+    Uses fixtures provided by @parameterized_class.
+    """
+    get_patcher = None  # Class attribute to hold the patcher context manager
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """
+        Set up class by starting a patcher for requests.get.
+        The mock will return different payloads based on the URL being accessed.
+        Fixtures (org_payload, repos_payload, etc.) are available as class attributes
+        thanks to @parameterized_class.
+        """
+
+        def side_effect_for_requests_get(url: str) -> Mock:
+            """
+            Side effect for mocked requests.get.
+            Returns a Mock whose json method returns appropriate fixture data based on URL.
+            """
+            mock_response = Mock()
+
+            # Determine the expected URL for organization details
+            # GithubOrgClient.ORG_URL is "https://api.github.com/orgs/{org}"
+            # The org name used in tests will be derived from cls.org_payload['login']
+            expected_org_url = GithubOrgClient.ORG_URL.format(
+                org=cls.org_payload.get('login') # type: ignore
+            )
+
+            # Determine the expected URL for repositories list
+            # This URL is directly provided in the org_payload fixture
+            expected_repos_url = cls.org_payload.get('repos_url') # type: ignore
+
+            if url == expected_org_url:
+                mock_response.json.return_value = cls.org_payload
+            elif url == expected_repos_url:
+                mock_response.json.return_value = cls.repos_payload
+            else:
+                # Handle unexpected URLs if necessary, e.g., by raising an error
+                # or returning a specific error payload. For this setup, we assume
+                # only these two URLs will be hit by the methods under test.
+                # Defaulting to an empty dict or raising can help debug.
+                print(f"Warning: Unhandled URL in mock side_effect: {url}")
+                mock_response.json.return_value = {"error": "URL not mocked for integration test"}
+            return mock_response
+
+        # The target for patching 'requests.get'. This assumes that 'requests.get'
+        # is called by a utility function (e.g., get_json in utils.py) which is
+        # imported and used in 'client.py'.
+        # Adjust 'utils.requests.get' if the import path or usage is different.
+        cls.get_patcher = patch('utils.requests.get') # type: ignore
+        mock_requests_get = cls.get_patcher.start() # type: ignore
+        mock_requests_get.side_effect = side_effect_for_requests_get
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """
+        Tear down class by stopping the patcher to clean up mocks.
+        """
+        if cls.get_patcher:
+            cls.get_patcher.stop() # type: ignore
+
+    # Test methods for integration tests will be added in subsequent tasks.
+    # For example:
+    # def test_public_repos_integration(self):
+    # client = GithubOrgClient(self.org_payload["login"]) # type: ignore
+    # actual_repos = client.public_repos()
+    # self.assertEqual(actual_repos, self.expected_repos) # type: ignore
 
 
 if __name__ == '__main__':
