@@ -8,6 +8,35 @@ from typing import Union, Callable, Optional, Any
 from functools import wraps
 
 
+def count_calls(method: Callable) -> Callable:
+    """
+    Decorator to count the number of times a method in the Cache class is called.
+
+    It uses the method's qualified name as the key in Redis to store the count.
+
+    Args:
+        method (Callable): The method to be decorated.
+
+    Returns:
+        Callable: The wrapped method with call counting functionality.
+    """
+    key_template = method.__qualname__
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs) -> Any:
+        """
+        Wrapper function that increments the call count in Redis and then
+        calls the original method.
+
+        'self' is expected to be an instance of the Cache class, providing
+        access to self._redis.
+        """
+        if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
+            self._redis.incr(key_template)
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
 class Cache:
     """
     A class for caching data in Redis.
@@ -15,7 +44,7 @@ class Cache:
     This class initializes a connection to a Redis server, flushes the database
     on initialization, and provides methods to store data with a randomly
     generated key, and retrieve data, optionally converting it to its
-    original type.
+    original type. Methods can be decorated to count their calls.
     """
     def __init__(self) -> None:
         """
@@ -27,9 +56,11 @@ class Cache:
         self._redis: redis.Redis = redis.Redis()
         self._redis.flushdb()
 
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Stores the input data in Redis using a random key.
+        The number of times this method is called is tracked in Redis.
 
         Args:
             data: The data to be stored. Can be of type str, bytes,
@@ -80,6 +111,7 @@ class Cache:
             the key does not exist or data cannot be decoded.
         """
         value = self.get(key, fn=lambda d: d.decode("utf-8"))
+        # Ensure the return type strictly matches Optional[str]
         return value if isinstance(value, str) or value is None else None
 
     def get_int(self, key: str) -> Optional[int]:
@@ -94,4 +126,5 @@ class Cache:
             the key does not exist or data cannot be converted to int.
         """
         value = self.get(key, fn=int)
+        # Ensure the return type strictly matches Optional[int]
         return value if isinstance(value, int) or value is None else None
