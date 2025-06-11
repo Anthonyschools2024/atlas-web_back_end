@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Module for implementing a Cache class with Redis.
+Module for implementing a Cache class with Redis and utility functions.
 """
 import redis
 import uuid
@@ -10,7 +10,7 @@ from functools import wraps
 
 def count_calls(method: Callable) -> Callable:
     """
-    Decorator to count the number of times a method in the Cache class is called.
+    Decorator to count the number of times a method is called.
 
     It uses the method's qualified name as the key in Redis to store the count.
 
@@ -51,8 +51,8 @@ def call_history(method: Callable) -> Callable:
     Returns:
         Callable: The wrapped method with input/output history logging.
     """
-    inputs_key = method.__qualname__ + ":inputs"
-    outputs_key = method.__qualname__ + ":outputs"
+    inputs_key_suffix = ":inputs"
+    outputs_key_suffix = ":outputs"
 
     @wraps(method)
     def wrapper(self, *args, **kwargs) -> Any:
@@ -63,17 +63,88 @@ def call_history(method: Callable) -> Callable:
         attribute that is a Redis client instance (e.g., the Cache class).
         Input arguments are stored as str(args).
         """
-        # For simplicity as per instructions, only positional args are logged.
-        # kwargs are ignored for history logging but passed to original method.
+        method_qualname = method.__qualname__
+        inputs_key = method_qualname + inputs_key_suffix
+        outputs_key = method_qualname + outputs_key_suffix
+
         if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
+            # Store input arguments as a string representation of the tuple
             self._redis.rpush(inputs_key, str(args))
 
         output = method(self, *args, **kwargs)
 
         if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
+            # Store the output
             self._redis.rpush(outputs_key, output)
         return output
     return wrapper
+
+
+def replay(method: Callable) -> None:
+    """
+    Displays the history of calls of a particular function.
+
+    Retrieves input and output history from Redis lists associated with
+    the method's qualified name, and also retrieves the call count.
+    It then prints this history in a formatted way.
+
+    Args:
+        method (Callable): The decorated method (e.g., Cache.store)
+                           whose history is to be replayed.
+                           It's expected that this method is bound to an
+                           instance of a class (like Cache) that has a `_redis`
+                           attribute which is a Redis client instance.
+    """
+    if not hasattr(method, '__self__') or \
+       not hasattr(method.__self__, '_redis') or \
+       not isinstance(method.__self__._redis, redis.Redis):
+        print(
+            "Error: The provided method must be bound to an instance "
+            "that has a `_redis` attribute (Redis client)."
+        )
+        return
+
+    redis_client = method.__self__._redis
+    method_qualname = method.__qualname__
+
+    # Keys used by decorators
+    count_key = method_qualname
+    inputs_key = method_qualname + ":inputs"
+    outputs_key = method_qualname + ":outputs"
+
+    # Retrieve call count
+    call_count_bytes = redis_client.get(count_key)
+    call_count = 0
+    if call_count_bytes:
+        try:
+            call_count = int(call_count_bytes.decode('utf-8'))
+        except (ValueError, UnicodeDecodeError):
+            # If decoding or int conversion fails, keep count as 0 or log warning
+            print(f"Warning: Could not decode call count for '{count_key}'.")
+
+    # Retrieve inputs and outputs history
+    # LRANGE returns a list of bytes [1]
+    inputs_history_bytes = redis_client.lrange(inputs_key, 0, -1)
+    outputs_history_bytes = redis_client.lrange(outputs_key, 0, -1)
+
+    print(f"{method_qualname} was called {call_count} times:")
+
+    # Zip inputs and outputs to display them pair-wise
+    for input_bytes, output_bytes in zip(inputs_history_bytes,
+                                         outputs_history_bytes):
+        try:
+            # Inputs were stored as str(args), e.g., "('foo',)"
+            # Outputs were stored directly (e.g., UUID string for store method)
+            input_str = input_bytes.decode('utf-8')
+            output_str = output_bytes.decode('utf-8')
+
+            # The format is MethodName(*args_representation) -> output
+            # Example: Cache.store(*('foo',)) -> some-uuid
+            print(f"{method_qualname}(*{input_str}) -> {output_str}")
+        except UnicodeDecodeError:
+            print(
+                f"Warning: Could not decode history entry for {method_qualname}"
+            )
 
 
 class Cache:
