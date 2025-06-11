@@ -28,12 +28,51 @@ def count_calls(method: Callable) -> Callable:
         Wrapper function that increments the call count in Redis and then
         calls the original method.
 
-        'self' is expected to be an instance of the Cache class, providing
-        access to self._redis.
+        'self' is expected to be an instance of a class with a `_redis`
+        attribute that is a Redis client instance (e.g., the Cache class).
         """
         if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
             self._redis.incr(key_template)
         return method(self, *args, **kwargs)
+    return wrapper
+
+
+def call_history(method: Callable) -> Callable:
+    """
+    Decorator to store the history of inputs and outputs for a particular function.
+
+    Every time the original function is called, it adds its input parameters
+    to one list in Redis and stores its output into another list.
+    The keys are based on the decorated function's qualified name.
+
+    Args:
+        method (Callable): The method to be decorated.
+
+    Returns:
+        Callable: The wrapped method with input/output history logging.
+    """
+    inputs_key = method.__qualname__ + ":inputs"
+    outputs_key = method.__qualname__ + ":outputs"
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs) -> Any:
+        """
+        Wrapper function that logs input arguments and output to Redis lists.
+
+        'self' is expected to be an instance of a class with a `_redis`
+        attribute that is a Redis client instance (e.g., the Cache class).
+        Input arguments are stored as str(args).
+        """
+        # For simplicity as per instructions, only positional args are logged.
+        # kwargs are ignored for history logging but passed to original method.
+        if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
+            self._redis.rpush(inputs_key, str(args))
+
+        output = method(self, *args, **kwargs)
+
+        if hasattr(self, '_redis') and isinstance(self._redis, redis.Redis):
+            self._redis.rpush(outputs_key, output)
+        return output
     return wrapper
 
 
@@ -44,7 +83,8 @@ class Cache:
     This class initializes a connection to a Redis server, flushes the database
     on initialization, and provides methods to store data with a randomly
     generated key, and retrieve data, optionally converting it to its
-    original type. Methods can be decorated to count their calls.
+    original type. Methods can be decorated to count their calls and log
+    their input/output history.
     """
     def __init__(self) -> None:
         """
@@ -57,10 +97,12 @@ class Cache:
         self._redis.flushdb()
 
     @count_calls
+    @call_history
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Stores the input data in Redis using a random key.
         The number of times this method is called is tracked in Redis.
+        The history of its inputs and outputs is also logged to Redis lists.
 
         Args:
             data: The data to be stored. Can be of type str, bytes,
