@@ -14,7 +14,7 @@ if __name__ == "__main__":
     nginx_collection = db.nginx
 
     # 1. Total number of logs
-    total_logs = nginx_collection.count_documents({})
+    total_logs = nginx_collection.count()
     print(f"{total_logs} logs")
 
     # 2. Methods header
@@ -23,15 +23,14 @@ if __name__ == "__main__":
     # 3. Count for each HTTP method
     methods =
     for method in methods:
-        count = nginx_collection.count_documents({"method": method})
+        count = nginx_collection.count({"method": method})
         print(f"\tmethod {method}: {count}")
 
     # 4. Count for GET requests to /status
-    status_check_count = nginx_collection.count_documents(
+    status_check_count = nginx_collection.count(
         {"method": "GET", "path": "/status"}
     )
     print(f"{status_check_count} status check")
 
-    # Close the connection (optional, as MongoClient manages connections,
-    # but good practice in some contexts)
+    # Close the connection
     client.close()
