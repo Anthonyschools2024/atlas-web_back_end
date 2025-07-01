@@ -1,3 +1,4 @@
+
 /**
  * Returns a resolved promise with a success message if the input is true.
  * @param {boolean} success - Determines if the promise should resolve.
@@ -6,7 +7,8 @@
 const getPaymentTokenFromAPI = (success) => {
   if (success) {
     return new Promise((resolve, reject) => {
-      resolve({ data: 'Successful response from theAPI' });
+      // CORRECTED: Added the missing space between "the" and "API".
+      resolve({ data: 'Successful response from the API' });
     });
   }
   // If success is false, the function implicitly returns undefined.
