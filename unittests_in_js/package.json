@@ -1,0 +1,14 @@
+{
+  "name": "unittests_in_js",
+  "version": "1.0.0",
+  "description": "A project for learning JavaScript unit testing with Mocha, Chai, and Sinon.",
+  "main": "0-calcul.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  }
+}
