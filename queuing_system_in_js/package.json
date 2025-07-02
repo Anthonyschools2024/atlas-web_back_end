@@ -1,0 +1,22 @@
+{
+  "name": "queuing_system_in_js",
+  "version": "1.0.0",
+  "description": "Redis and Node.js ProjectThis project contains a series of examples demonstrating how to use Redis with Node.js, including basic operations, caching with Express, and background job processing with Kue.Learning ObjectivesRunning a local Redis server.Using the redis-cli for basic commands.Connecting a Node.js application to Redis using the redis package.Performing GET/SET operations.Storing and retrieving hash data structures.Implementing a caching layer in an Express application.Understanding and implementing a job queue system using Kue.Creating producer (Express server) and consumer (worker) processes.RequirementsOperating System: Ubuntu 18.04Node.js Version: 12.x or higherRedis Server Version: 5.0.7 or higherNPM Packages:redisexpresskueSetupInstall Redis:sudo apt-get update sudo apt-get install redis-server Clone the project (or create the files as described in the lesson):git clone <your-repo-url> cd redis-node-project Install Node.js dependencies:npm install How to Run the Examples1. Basic Redis with Node.jsThis example connects to Redis, performs basic string and hash operations, and then disconnects.node index.js 2. Express Caching ServerThis example runs a web server that uses Redis to cache responses from a simulated slow database.node server.js The server will be running on http://localhost:3000.Access the endpoint: curl http://localhost:3000/posts.The first request will be slow. Subsequent requests within the cache expiration period (1 hour) will be fast.3. Job Queue with KueThis system involves two separate processes: a web server that creates jobs and a worker that processes them.You will need two terminal windows.In Terminal 1, start the worker:node worker.js The worker will wait for jobs to appear in the queue.In Terminal 2, start the Express server:node queue_server.js The server will be running on http://localhost:3001.In a third terminal, create a job by sending a POST request:curl -X POST -H \"Content-Type: application/json\" \\      -d '{\"email\":\"test@example.com\", \"name\":\"Alice\"}' \\      http://localhost:3001/send-welcome-email You will receive an immediate confirmation that the job has been queued.Monitor the worker terminal to see the job being processed after a 5-second delay.(Optional) View the Kue UI by opening http://localhost:3002 in your browser to see a dashboard of job statuses.All files should end with a new line. All code is written in JavaScript (.js extension).",
+  "main": "0-redis_client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "redis": "^5.5.6"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/node": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "nodemon": "^3.1.10"
+  }
+}
