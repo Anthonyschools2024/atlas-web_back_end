@@ -5,6 +5,7 @@ This module defines the DB class for database interactions.
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.orm.exc import NoResultFound
 
 from user import Base, User
 
@@ -49,3 +50,20 @@ class DB:
         self._session.add(new_user)
         self._session.commit()
         return new_user
+
+    def find_user_by(self, **kwargs) -> User:
+        """
+        Finds a user by the given keyword arguments.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments to filter by (e.g., email).
+
+        Returns:
+            User: The first user object matching the criteria.
+
+        Raises:
+            NoResultFound: If no user is found with the given criteria.
+            InvalidRequestError: If a non-existent column is provided.
+        """
+        user = self._session.query(User).filter_by(**kwargs).one()
+        return user
