@@ -5,6 +5,7 @@ This module provides the authentication service logic.
 import bcrypt
 import uuid
 from sqlalchemy.orm.exc import NoResultFound
+from typing import Optional
 
 from db import DB
 from user import User
@@ -93,7 +94,7 @@ class Auth:
 
         return bcrypt.checkpw(password_bytes, hashed_password_bytes)
 
-    def create_session(self, email: str) -> str | None:
+    def create_session(self, email: str) -> Optional[str]:
         """
         Creates a new session for a user.
 
@@ -101,8 +102,8 @@ class Auth:
             email (str): The user's email address.
 
         Returns:
-            str | None: The session ID string if the user is found,
-                        otherwise None.
+            Optional[str]: The session ID string if the user is found,
+                           otherwise None.
         """
         try:
             user = self._db.find_user_by(email=email)
