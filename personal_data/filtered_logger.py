@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Module for filtering and obfuscating sensitive log data and connecting to db.
+A script that connects to a secure database, retrieves user data,
+and logs it with sensitive information redacted.
 """
 import re
 import os
@@ -8,7 +9,7 @@ import logging
 import mysql.connector
 from typing import List
 
-PII_FIELDS: tuple = ("name", "email", "phone_number", "ssn", "password")
+PII_FIELDS: tuple = ("name", "email", "phone", "ssn", "password")
 
 
 def filter_datum(fields: List[str], redaction: str,
@@ -102,3 +103,26 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
         database=db_name
     )
     return db_connection
+
+
+def main() -> None:
+    """
+    Retrieves user data from a database and logs it with PII fields redacted.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    logger = get_logger()
+
+    cursor.execute("SELECT * FROM users;")
+    column_names = [desc[0] for desc in cursor.description]
+
+    for row in cursor:
+        message = "; ".join(f"{name}={val}" for name, val in zip(column_names, row))
+        logger.info(message + ';')
+
+    cursor.close()
+    db.close()
+
+
+if __name__ == "__main__":
+    main()
