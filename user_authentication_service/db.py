@@ -63,7 +63,29 @@ class DB:
 
         Raises:
             NoResultFound: If no user is found with the given criteria.
-            InvalidRequestError: If a non-existent column is provided.
         """
         user = self._session.query(User).filter_by(**kwargs).one()
         return user
+
+    def update_user(self, user_id: int, **kwargs) -> None:
+        """
+        Updates a user's attributes based on their ID.
+
+        Args:
+            user_id (int): The ID of the user to update.
+            **kwargs: Arbitrary keyword arguments with new attribute values.
+
+        Raises:
+            ValueError: If an argument in kwargs is not a valid user attribute.
+        """
+        try:
+            user = self.find_user_by(id=user_id)
+        except NoResultFound:
+            return
+
+        for key, value in kwargs.items():
+            if not hasattr(user, key):
+                raise ValueError
+            setattr(user, key, value)
+
+        self._session.commit()
