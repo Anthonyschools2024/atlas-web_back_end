@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Module for filtering and obfuscating sensitive log data.
+Module for filtering and obfuscating sensitive log data and connecting to db.
 """
 import re
+import os
 import logging
+import mysql.connector
 from typing import List
 
 PII_FIELDS: tuple = ("name", "email", "phone_number", "ssn", "password")
@@ -64,11 +66,6 @@ def get_logger() -> logging.Logger:
     """
     Creates and configures a logger named 'user_data'.
 
-    The logger is configured to:
-    - Log messages of level INFO and above.
-    - Not propagate messages to parent loggers.
-    - Use a StreamHandler with a RedactingFormatter to obfuscate PII.
-
     Returns:
         logging.Logger: A configured logger object.
     """
@@ -82,3 +79,26 @@ def get_logger() -> logging.Logger:
 
     logger.addHandler(stream_handler)
     return logger
+
+
+def get_db() -> mysql.connector.connection.MySQLConnection:
+    """
+    Creates and returns a connector to a secure MySQL database.
+
+    Reads database credentials from environment variables.
+
+    Returns:
+        A mysql.connector.connection.MySQLConnection object.
+    """
+    username = os.environ.get("PERSONAL_DATA_DB_USERNAME", "root")
+    password = os.environ.get("PERSONAL_DATA_DB_PASSWORD", "")
+    host = os.environ.get("PERSONAL_DATA_DB_HOST", "localhost")
+    db_name = os.environ.get("PERSONAL_DATA_DB_NAME")
+
+    db_connection = mysql.connector.connect(
+        user=username,
+        password=password,
+        host=host,
+        database=db_name
+    )
+    return db_connection
