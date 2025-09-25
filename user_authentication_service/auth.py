@@ -3,6 +3,7 @@
 This module provides the authentication service logic.
 """
 import bcrypt
+import uuid
 from sqlalchemy.orm.exc import NoResultFound
 
 from db import DB
@@ -22,6 +23,16 @@ def _hash_password(password: str) -> bytes:
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed_password
+
+
+def _generate_uuid() -> str:
+    """
+    Generates a new random UUID (version 4).
+
+    Returns:
+        str: The string representation of the UUID.
+    """
+    return str(uuid.uuid4())
 
 
 class Auth:
